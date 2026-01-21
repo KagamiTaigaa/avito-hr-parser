@@ -1,0 +1,40 @@
+const puppeteer = require('puppeteer');
+const express = require('express');
+const app = express();
+
+app.get('/parse', async (req, res) => {
+  const browser = await puppeteer.launch({ headless: true });
+  const page = await browser.newPage();
+  
+  // Логинимся в Avito
+  await page.goto('https://www.avito.ru');
+  
+  // Ваш код авторизации здесь
+  // ...
+  
+  // Переходим в отклики
+  await page.goto('https://www.avito.ru/profile/response');
+  
+  // Ждем загрузки
+  await page.waitForSelector('.response-item');
+  
+  // Парсим данные
+  const responses = await page.evaluate(() => {
+    const items = [];
+    document.querySelectorAll('.response-item').forEach(item => {
+      items.push({
+        name: item.querySelector('[data-marker*="name"]')?.innerText || 'Не указано',
+        phone: item.querySelector('[data-marker*="phone"]')?.innerText || 'Не указано',
+        vacancy: item.querySelector('[data-marker*="vacancy"]')?.innerText || 'Не указано',
+        date: item.querySelector('[data-marker*="date"]')?.innerText || 'Не указано',
+        status: item.querySelector('[data-marker*="status"]')?.innerText || 'Новый'
+      });
+    });
+    return items;
+  });
+  
+  await browser.close();
+  res.json(responses);
+});
+
+app.listen(3000, () => console.log('Parser running'));
